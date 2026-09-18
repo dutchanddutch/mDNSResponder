@@ -3447,12 +3447,10 @@ exit:
 mDNSlocal void resolve_termination_callback(request_state *request)
 {
     request_resolve *const resolve = request->resolve;
-    mDNSBool has_split_awdl_query = mDNSfalse;
 
     UDS_LOG_CLIENT_REQUEST(MDNS_LOG_CATEGORY_MDNS, MDNS_LOG_DEFAULT,
         "DNSServiceResolve STOP",
-        &resolve->qtxt.qname, request, mDNStrue, "SRV name: " PRI_DM_NAME ", split AWDL query: " PUB_BOOL,
-        DM_NAME_PARAM_NONNULL(&resolve->qtxt.qname), BOOL_PARAM(has_split_awdl_query));
+        &resolve->qtxt.qname, request, mDNStrue, "SRV name: " PRI_DM_NAME, DM_NAME_PARAM_NONNULL(&resolve->qtxt.qname));
 
     mDNS_StopQuery(&mDNSStorage, &resolve->qtxt);
     mDNS_StopQuery(&mDNSStorage, &resolve->qsrv);
@@ -3626,7 +3624,6 @@ mDNSlocal void resolve_result_callback(mDNS *const m, DNSQuestion *question, con
     request_state *const req = question->QuestionContext;
     const mDNSu32 name_hash = mDNS_DomainNameFNV1aHash(&question->qname);
     const mDNSBool isMDNSQuestion = mDNSOpaque16IsZero(question->TargetQID);
-    const mDNSBool is_split_awdl_query = (req->resolve_awdl && question->InterfaceID == AWDLInterfaceID);
     UDS_LOG_ANSWER_EVENT(isMDNSQuestion ? MDNS_LOG_CATEGORY_MDNS : MDNS_LOG_CATEGORY_DEFAULT, MDNS_LOG_DEFAULT,
         req, question, answer, mDNSfalse, "DNSServiceResolve result", AddRecord);
 
@@ -3713,18 +3710,18 @@ mDNSlocal void resolve_result_callback(mDNS *const m, DNSQuestion *question, con
     {
         LogRedact(MDNS_LOG_CATEGORY_DEFAULT, MDNS_LOG_DEFAULT, "[R%u->(Q%u, Q%u)] DNSServiceResolve RESULT -- "
             "instance: " PRI_DM_NAME "(" PRI_HEX_INT "), ifindex: %u, target host: " PRI_DM_NAME "(" PRI_HEX_INT
-            "), port: %u, negative txt: " PUB_BOOL ", txt rdlength: %u, split AWDL query: " PUB_BOOL,
+            "), port: %u, negative txt: " PUB_BOOL ", txt rdlength: %u",
             req->request_id, mDNSVal16(resolve->qsrv.TargetQID), mDNSVal16(resolve->qtxt.TargetQID),
             DM_NAME_PARAM_NONNULL(answer->name), name_hash, interface_index,
             DM_NAME_PARAM_NONNULL(resolve->srv_target_name), target_name_hash, mDNSVal16(srv_port),
-            BOOL_PARAM(resolve->txt_negative), txt_rdlength, BOOL_PARAM(is_split_awdl_query));
+            BOOL_PARAM(resolve->txt_negative), txt_rdlength);
     }
     else
     {
         LogRedact(MDNS_LOG_CATEGORY_DEFAULT, MDNS_LOG_DEFAULT, "[R%u->(Q%u, Q%u)] DNSServiceResolve NoSuchRecord -- "
-            "instance: " PRI_DM_NAME "(" PRI_HEX_INT "), split AWDL query: " PUB_BOOL,
+            "instance: " PRI_DM_NAME "(" PRI_HEX_INT ")",
             req->request_id, mDNSVal16(resolve->qsrv.TargetQID), mDNSVal16(resolve->qtxt.TargetQID),
-            DM_NAME_PARAM_NONNULL(answer->name), name_hash, BOOL_PARAM(is_split_awdl_query));
+            DM_NAME_PARAM_NONNULL(answer->name), name_hash);
     }
     append_reply(req, rep);
 }
@@ -3842,15 +3839,12 @@ mDNSlocal mStatus handle_resolve_request(request_state *request)
     request_resolve *const resolve = request->resolve;
     _initialize_request_resolve(resolve, params.InterfaceID, flags, &params.fqdn, request);
 
-    mDNSBool has_split_awdl_query = mDNSfalse;
-
 #if 0
     if (!AuthorizedDomain(request, &fqdn, AutoBrowseDomains)) return(mStatus_NoError);
 #endif
 
     UDS_LOG_CLIENT_REQUEST(MDNS_LOG_CATEGORY_MDNS, MDNS_LOG_DEFAULT, "DNSServiceResolve START",
-        &resolve->qsrv.qname, request, mDNSfalse, "SRV name: " PRI_DM_NAME ", split AWDL query: " PUB_BOOL,
-        DM_NAME_PARAM(&resolve->qsrv.qname), BOOL_PARAM(has_split_awdl_query));
+        &resolve->qsrv.qname, request, mDNSfalse, "SRV name: " PRI_DM_NAME, DM_NAME_PARAM(&resolve->qsrv.qname));
 
     request->terminate = NULL;
     err = _handle_resolve_request_start(request, &params);
